@@ -24,15 +24,20 @@ def lemma_text(text):
     lemmas = []
     for word in text:
         lemma = tizer.lemmatize(word)
-        if not lemma in stw + pnkt:
+        if not lemma in stw + pnkt and nltk.pos_tag([lemma])[0][1] == 'NN':
             lemmas.append(lemma)
     return lemmas
 
 
+def init():
+    nltk.download('wordnet')
+    nltk.download('stopwords')
+    nltk.download('omw-1.4')
+    nltk.download('averaged_perceptron_tagger')
+
+
 def main():
-    # nltk.download('wordnet')
-    # nltk.download('stopwords')
-    # nltk.download('omw-1.4')
+    # init()
     corpus = etree.parse('news.xml').getroot()
     news = corpus[0]
     for n in news:
