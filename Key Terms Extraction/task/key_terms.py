@@ -3,18 +3,36 @@ import nltk as nltk
 from lxml import etree
 from nltk.stem import WordNetLemmatizer
 from nltk.corpus import stopwords
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 
-def sort_text(text):
-    dic = {t: text.count(t) for t in text}
-    dic = {k: dic[k] for k in sorted(dic, key=dic.get, reverse=True)}
-    cnts = sorted({dic[k] for k in dic}, reverse=True)
-    lst = []
-    for n in cnts:
-        lst += sorted([k for k in dic if dic[k] == n], reverse=True)
-        if len(lst) >= 5:
-            break
-    print(' '.join(lst[:5]), '\n')
+def do_dic(voc, vec):
+    # Create dictionary {term: tf-idf}
+    # on base doc vocabulary and it's vector
+    dic = {}
+    for i in range(len(vec)):
+        if vec[i] > 0:
+            dic[voc[i]] = vec[i]
+    return dic
+
+
+def sort_by_tf_idf(text):
+    vectorizer = TfidfVectorizer()
+    vectorizer.fit(text)
+    terms = vectorizer.get_feature_names_out()
+    sort_text = []
+    for doc in text:
+        vector = vectorizer.transform([doc])
+        vector = vector.toarray()[0]
+        tf_dic = do_dic(terms, vector)
+        cnts = sorted({tf_dic[k] for k in tf_dic}, reverse=True)
+        lst = []
+        for n in cnts:
+            lst += sorted([k for k in tf_dic if tf_dic[k] == n], reverse=True)
+            if len(lst) >= 5:
+                break
+        sort_text.append(' '.join(lst[:5]))
+    return sort_text
 
 
 def lemma_text(text):
@@ -40,12 +58,18 @@ def main():
     # init()
     corpus = etree.parse('news.xml').getroot()
     news = corpus[0]
+    new_text = []
+    heads = []
     for n in news:
-        head = n[0].text
-        print(f'{head}:')
-        text = n[1].text
-        tokens = nltk.tokenize.word_tokenize(text.lower())
-        sort_text(lemma_text(tokens))
+        heads.append(n[0].text)
+        doc = n[1].text
+        tokens = nltk.tokenize.word_tokenize(doc.lower())
+        doc = lemma_text(tokens)
+        new_text.append(' '.join(doc))
+    news = sort_by_tf_idf(new_text)
+    for i in range(len(heads)):
+        print(f'{heads[i]}:')
+        print(f'{news[i]}\n')
 
 
 if __name__ == '__main__':
